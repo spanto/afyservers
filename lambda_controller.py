@@ -30,7 +30,7 @@ timeout = 20
 
 import platform
 global serial_server_name
-serial_server_name = platform.node() + '_serial_server'
+serial_server_name = platform.node() + '_serial_server'.replace("-","_").lower() # replicate the formatting changes done by LabRAD to the computer name
 
 from labrad.server import setting
 from labrad.devices import DeviceServer,DeviceWrapper
