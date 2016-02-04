@@ -207,6 +207,8 @@ class arduinoDCBoxServer(DeviceServer):
     def read_voltages(self,c):
         """Queries the DC box for the voltages set on all ports and updates internal tracker"""
         dev = self.selectedDevice(c)
+        yield dev.write("NOP\r\n") # clear
+        yield dev.read()           # buffer
         for port in range(8):
             yield dev.write("GET_DAC,%i\r\n"%port)
             ans = yield dev.read()
