@@ -1,9 +1,9 @@
-"""
+raw_input("""
 This program has been deprecated.
 The functionality of identifying serial port devices has been moved to a client instead of a server.
 The client (also called serial device manager) is run once, and populates the LabRAD registry with the results.
 The new client can be found at https://github.com/afylab/Serial-Device-Manager
-"""
+""")
 
 
 # # Copyright (C) 2015  Brunel Odegard

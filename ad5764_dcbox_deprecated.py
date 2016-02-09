@@ -1,7 +1,7 @@
-"""
+raw_input("""
 This is the old server
 The new server is named ad5764_dcbox.py
-"""
+""")
 
 # # Copyright []
 # #
