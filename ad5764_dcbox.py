@@ -252,8 +252,17 @@ class arduinoDCBoxServer(DeviceServer):
         returnValue(ret)                   # 
 
     @setting(9000)          # Here for testing stuff
-    def do_nothing(self,c): # Surprisingly, this function
+    def test_do_nothing(self,c): # Surprisingly, this function
         yield True          # does nothing at all
+
+    @setting(9001,returns='v')    # Here for testing stuff
+    def test_return_zero(self,c): # This function returns zero
+        resp = yield 0.0          #
+        returnValue(resp)         #
+
+    @setting(9002,inp='v')             # Also here for testing
+    def test_accept_float(self,c,inp): # Accepts float input
+        yield True                     # But does nothing
 
 
 
