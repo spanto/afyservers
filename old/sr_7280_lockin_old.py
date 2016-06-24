@@ -37,6 +37,8 @@ from labrad.gpib import GPIBManagedServer, GPIBDeviceWrapper
 from twisted.internet.defer import inlineCallbacks, returnValue
 import labrad.units as units
 
+
+
 class SR7280Wrapper(GPIBDeviceWrapper):
 
     #############################
@@ -94,25 +96,20 @@ class SR7280Wrapper(GPIBDeviceWrapper):
     def get_ac_gain(self):
         gain = yield self.query("ACGAIN")
         returnValue(gain)
-   
     @inlineCallbacks
     def set_is_acgain_automatic(self,n):
         yield self.write("AUTOMATIC %i" %n)
-    
     @inlineCallbacks
     def get_is_acgain_automatic(self):
         is_auto = yield self.query("AUTOMATIC")
         returnValue(is_auto)
-   
     @inlineCallbacks
     def set_line_frequency_filter(self,n1,n2):
         yield self.write("LF %i %i" %(n1,n2))
-    
     @inlineCallbacks
     def get_line_frequency_filter(self):
         lf = yield self.query("LF")
         returnValue(lf)
-
 
     #######################
     ## Reference channel ##
@@ -146,19 +143,6 @@ class SR7280Wrapper(GPIBDeviceWrapper):
         suf = '.' if flt else ''
         pha = yield self.query("PHA%s"%suf)
         returnValue(pha)
-
-    @inlineCallbacks
-    def read_noise(self, flt):
-        '''
-        In fixed point mode causes the lock-in amplifier to respond with the mean absolute
-        value of the Y channel output in the range 0 to 12000, full-scale being 10000. If the
-        mean value of the Y channel output is zero, this is a measure of the output noise.
-        In floating point mode causes the lock-in amplifier to respond in volts.
-        '''
-        suf = '.' if flt else ''
-        noise = yield self.query("NN%s" %suf)
-        returnValue(noise)
-
         
     # overload
     @inlineCallbacks
@@ -173,11 +157,10 @@ class SR7280Wrapper(GPIBDeviceWrapper):
         returnValue(value)
 
 class SR7280Server(GPIBManagedServer):
-    name = 'Amatek 7280 Lock-in amplifier'
+    name = 'sr_7280_lockin'
     deviceName = '7280 DSP Lock-In'
     deviceIdentFunc = 'identify_device'
     deviceWrapper = SR7280Wrapper
-
 
     @setting(9001, server='s', address='s')
     def identify_device(self, c, server, address):
@@ -406,215 +389,12 @@ class SR7280Server(GPIBManagedServer):
     #################################
     ## Computer Interfaces Channel ##
     #################################
-    @setting(1010, returns='b')
-    def set_auto_s(self,c):
-        waittime = yield self.wait_time(c)
-        waittime = waittime['s']
-        if waittime < 20*1e-3:
-            waittime=20*1e-3
-        #print waittime
-        #ovr = yield self.output_overload(c)
-        #while  ovr:
-        #    yield self.sensitivity_up(c)
-        #    yield util.wakeupCall(waittime)
-        #    ovr = yield self.output_overload(c)
-        #while  ovr == False:
-        #    yield self.sensitivity_down(c)
-        #    yield util.wakeupCall(waittime)
-        #    ovr = yield self.output_overload(c)
-        
-        #yield self.sensitivity_up(c)
-        #yield util.wakeupCall(waittime)
-        #yield self.sensitivity_up(c)
-        yield self.do_auto_sensitivity(c)
-        #yield util.wakeupCall(waittime)
-        #while int((yield self.gpib_query(c,"N"))) != 0:
-        #    yield util.wakeupCall(waittime)
-
-
-
-        #r = yield self.read_magnitude(c)
-        #sens = yield self.get_sensitivity(c)
-        #while r/sens > 0.95:
-        
-        #    print "sensitivity up... ",
-        #    yield self.sensitivity_up(c)
-        #    yield util.wakeupCall(waittime)
-        #    r = yield self.read_magnitude(c)
-        #    sens = yield self.get_sensitivity(c)
-        #    print r, sens, r/sens*100
-        #while r/sens < 0.35:
-        #    print "sensitivity down... ",
-        #    yield self.sensitivity_down(c)
-        #    yield util.wakeupCall(waittime)
-        #    r = yield self.read_magnitude(c)
-        #    sens = yield self.get_sensitivity(c)
-        #    print r, sens, r/sens*100
-        #yield util.wakeupCall(waittime)
-        #print "auto sensitivity complete"
-        returnValue(True)
-
-    #@setting(1011, returns='b')
-    #def set_auto_gain(self,c):
-     #   waittime = yield self.wait_time(c)
-     #   waittime = waittime['s']
-     #   
-     #   ovr = yield self.input_overload(c)
-     #   while  ovr:
-     #       print ovr
-     #       yield self.acgain_down(c)
-     #       yield util.wakeupCall(waittime)
-     #       ovr = yield self.input_overload(c)
-     #   while  ovr == False:
-     #       g = yield self.get_ac_gain(c)
-     #       yield self.acgain_up(c)
-     #       yield util.wakeupCall(waittime)
-     #       ovr = yield self.input_overload(c)
-     #       ovr = ovr or (g== (yield self.get_ac_gain(c)))
-        
-    #    yield self.acgain_down(c)
-    #    yield util.wakeupCall(waittime)
-    #    returnValue(True)
-
-
-    @setting(421, 'Sensitivity Up', returns='v')
-    def sensitivity_up(self, c):
-        ''' Kicks the sensitivity up a notch. '''
-        dev = self.selectedDevice(c)
-        dev.channel_set_sensitivity(int((yield dev.get_sens_num()))+1)
-        returnValue((yield self.get_sensitivity(c)))
-
-    @setting(422, 'Sensitivity Down', returns='v')
-    def sensitivity_down(self, c):
-        ''' Turns the sensitivity down a notch. '''
-        dev = self.selectedDevice(c)
-        dev.channel_set_sensitivity(int((yield dev.get_sens_num()))-1)
-        returnValue((yield self.get_sensitivity(c)))
-
-    @setting(423, 'Gain Up', returns='v')
-    def acgain_up(self, c):
-        ''' Kicks the gain up a notch. '''
-        dev = self.selectedDevice(c)
-        dev.set_ac_gain(int((yield dev.get_ac_gain()))+1)
-        returnValue((yield self.get_ac_gain(c)))
-
-    @setting(424, 'Gain Down', returns='v')
-    def acgain_down(self, c):
-        ''' Turns the gain down a notch. '''
-        dev = self.selectedDevice(c)
-        dev.set_ac_gain(int((yield dev.get_ac_gain()))-1)
-        returnValue((yield self.get_ac_gain(c)))
-       
-
-    @setting(1000,'Check output overload',returns='b')
-    def output_overload(self,c):
-        """
-         Returns the overload status byte. 
-          Bit 0 - not used (rightmost)
-          Bit 1 - CH1 Output Overload
-          Bit 2 - CH2 Output Overload
-          Bit 3 - Y Channel Overload
-          Bit 4 - X Channel Overload
-          Bit 5 - not used
-          Bit 6 - Input Overload
-          Bit 7 - Reference unlock
-        """
+    @setting(1000,returns='i')
+    def get_overload(self,c):
         dev=self.selectedDevice(c)
         overload = yield dev.get_overload()
-        overload = "{0:b}".format(overload).zfill(8)
-        returnValue((int(overload[3])==1)or(int(overload[4])==1))
-
-    @setting(1006,'Check input overload',returns='b')
-    def input_overload(self,c):
-        """
-         Returns the overload status byte. 
-          Bit 0 - not used (rightmost)
-          Bit 1 - CH1 Output Overload
-          Bit 2 - CH2 Output Overload
-          Bit 3 - Y Channel Overload
-          Bit 4 - X Channel Overload
-          Bit 5 - not used
-          Bit 6 - Input Overload
-          Bit 7 - Reference unlock
-        """
-        dev=self.selectedDevice(c)
-        overload = yield dev.get_overload()
-        overload = "{0:b}".format(overload).zfill(8)
-        returnValue((int(overload[1])==1))
-
-    @setting(1007,'Get overload byte',returns='s')
-    def overload_byte(self,c):
-        """
-         Returns the overload status byte. 
-          Bit 0 - not used (rightmost)
-          Bit 1 - CH1 Output Overload
-          Bit 2 - CH2 Output Overload
-          Bit 3 - Y Channel Overload
-          Bit 4 - X Channel Overload
-          Bit 5 - not used
-          Bit 6 - Input Overload
-          Bit 7 - Reference unlock
-        """
-        dev=self.selectedDevice(c)
-        overload = yield dev.get_overload()
-        overload = "{0:b}".format(overload).zfill(8)
         returnValue(overload)
-
-    @setting(2001,'TC', returns='i')
-    def tc(self,c,i=None):
-        '''sets the time constant'''
-        dev = self.selectedDevice(c)
-        if i != None:
-            yield dev.write("TC {}".format(i))
-            returnValue(int((yield dev.query("TC"))))
-        else:
-            returnValue(int((yield dev.query("TC"))))
-
-    @setting(2002,'Slope', returns='i')
-    def slope(self, c, i=None):
-        '''sets the output filter slope'''
-        dev = self.selectedDevice(c)
-        if i != None:
-            yield dev.write("SLOPE {}".format(i))
-            returnValue(int((yield dev.query("SLOPE"))))
-        else:
-            returnValue(int((yield dev.query("SLOPE"))))
-
-
-    @setting(343, 'Wait Time', returns='v[s]')
-    def wait_time(self, c):
-        ''' Returns the recommended wait time given current time constant and low-pass filter slope. '''
-        dev = self.selectedDevice(c)
-        tc = yield dev.query("TC.")
-        tc =  float(tc)*units.s
-        slope = yield dev.query("SLOPE.")
-        slope = int(slope)
-        if slope == 0:
-            returnValue(5*tc)
-        elif slope == 1:
-            returnValue(7*tc)
-        elif slope == 2:
-            returnValue(9*tc)
-        else:# slope == 3:
-            returnValue(10*tc)
     
-    @setting(2021, 'Noise Spectrl Density', returns='v')
-    def noise_density(self, c):
-        dev = self.selectedDevice(c)
-        noise = yield dev.query("NHZ.")
-        returnValue(noise)
-
-
-    @setting(2022, 'Switch to Noise Measurement', n='i', returns=[])
-    def noise_mode(self, c, n):
-        dev = self.selectedDevice(c)
-        yield dev.write("NOISEMODE %i" %n)
-
-    @setting(2023, 'Noise Buffer Length', n='i', returns=[])
-    def noise_buffer_length(self,c, n):
-        dev = self.selectedDevice(c)
-        yield dev.write("NNBUF %i" %n)
-
 __server__ = SR7280Server()
 
 if __name__ == '__main__':
