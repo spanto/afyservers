@@ -28,10 +28,6 @@ timeout = 20
 ### END NODE INFO
 """
 
-import platform
-global serial_server_name
-serial_server_name = platform.node() + '_serial_server'
-
 from labrad.server import setting
 from labrad.devices import DeviceServer,DeviceWrapper
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -229,48 +225,54 @@ class SR560Server(DeviceServer):
         dev=self.selectedDevice(c)
         yield dev.write("FLTM %i\r\n"%mode)
 
-    @setting(205,gain='i')
+    @setting(205,gain='v[]',returns='v[]')
     def set_gain(self,c,gain):
-        """        
-        (i,   gain)\n
-        (0,   1)
-        (1,   2)
-        (2,   5)
-        (3,   100)
-        (4,   200)
-        (5,   500)
-        (6,   1k)
-        (7,   2k)
-        (8,   5k)
-        (9,   10k)
-        (10,  20k)
-        (11,  50k)
+        """
+        Sets the gain. Maximun value 50k. Minimum 1.
         """
 
         dev=self.selectedDevice(c)
-        yield dev.write("GAIN %i\r\n"%gain)
+
+        if gain<1:
+            raise Exception('Gain cannot be less than 1')
+        elif gain<=100:
+            n = int(round(log10(gain)*3/2))
+        elif gain<=50000:
+            n = int(round(3*log10(gain)-3))
+        else:
+            n = 11
+
+        yield dev.write("GAIN %i\r\n"%n)
+
+        if n<=2:
+            gain = pow(10,n*2/3)
+        else:
+            gain = pow(10,(n+3)/3)
+
+        returnValue(gain)
+
+
 
     # highpass filter frequency
-    @setting(206, sp=['i{integer span code}','v[Hz]'])
-    def set_hFilterFrequency(self, c, sp=None):  
-        """        
-        (i,   span)
-        (0,   0.03Hz)
-        (1,   0.1Hz)
-        (2,   0.3Hz)
-        (3,   1.0Hz)
-        (4,   3.0Hz)
-        (5,   10.0Hz)
-        (6,   30.0Hz)
-        (7,   100.0Hz)
-        (8,   300.0Hz)
-        (9,   1.0kHz)
-        (10,  3.0kHz)
-        (11,  10.0kHz)
+    @setting(206, frequency='v[]', returns='v[]')
+    def set_hFilterFrequency(self, c, frequency):  
         """
+        Sets high pass filter frequency. Maximum 10kHz.
+        """
+        dev=self.selectedDevice(c)
+        if frequency<0:
+            raise Exception('Frequency cannot be negative')
+        elif frequency<=10000:
+            n = int(round(2*log10(frequency)+3))
+        else:
+            n=11
 
         dev=self.selectedDevice(c)
-        yield dev.write("HFRQ%i\r\n"%sp)
+        yield dev.write("HFRQ%i\r\n"%n)
+        frequency = pow(10,(n-3)/2)
+        returnValue(frequency)
+
+
 
     @setting(207, sense='i')
     def set_signalInvertSense(self,c,sense):
@@ -288,29 +290,23 @@ class SR560Server(DeviceServer):
         yield dev.write("LALL\r\n")
 
     # lowpass filter frequency
-    @setting(209, frequency='i')
+    @setting(209, frequency='v[]',returns='v[]')
     def set_lFilterFrequency(self,c,frequency):
         """        
-        (i,   span)
-        (0,   0.03Hz)
-        (1,   0.1Hz)
-        (2,   0.3Hz)
-        (3,   1.0Hz)
-        (4,   3.0Hz)
-        (5,   10.0Hz)
-        (6,   30.0Hz)
-        (7,   100.0Hz)
-        (8,   300.0Hz)
-        (9,   1.0kHz)
-        (10,  3.0kHz)
-        (11,  10.0kHz)
-        (12,  30.0kHz)
-        (13,  100.0kHz)
-        (14,  300.0kHz)
-        (15,  1.0MHz)
+        Sets low pass filter frequency. Maximum 1Mhz.
         """
         dev=self.selectedDevice(c)
-        yield dev.write("LFRQ %i\r\n"%frequency)
+        if frequency<0:
+            raise Exception('Frequency cannot be negative')
+        elif frequency<=1000000:
+            n = int(round(2*log10(frequency)+3))
+        else:
+            n =15
+        
+        yield dev.write("LFRQ %i\r\n"%n)
+        frequency = pow(10,(n-3)/2)
+        returnValue(frequency)
+
 
     #resets overload for 1/2 second
     @setting(210)
