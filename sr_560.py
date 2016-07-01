@@ -37,6 +37,7 @@ from labrad.types import Value
 from struct import unpack
 import numpy as np
 import time
+import math
 
 TIMEOUT = Value(5,'s')
 BAUD    = 9600
@@ -236,18 +237,18 @@ class SR560Server(DeviceServer):
         if gain<1:
             raise Exception('Gain cannot be less than 1')
         elif gain<=100:
-            n = int(round(log10(gain)*3/2))
+            n = int(round(math.log10(gain)*3/2))
         elif gain<=50000:
-            n = int(round(3*log10(gain)-3))
+            n = int(round(3*math.log10(gain)-3))
         else:
             n = 11
 
         yield dev.write("GAIN %i\r\n"%n)
 
         if n<=2:
-            gain = pow(10,n*2/3)
+            gain = math.pow(10,n*2/3)
         else:
-            gain = pow(10,(n+3)/3)
+            gain = math.pow(10,(n+3)/3)
 
         returnValue(gain)
 
@@ -263,13 +264,13 @@ class SR560Server(DeviceServer):
         if frequency<0:
             raise Exception('Frequency cannot be negative')
         elif frequency<=10000:
-            n = int(round(2*log10(frequency)+3))
+            n = int(round(2*math.log10(frequency)+3))
         else:
             n=11
 
         dev=self.selectedDevice(c)
         yield dev.write("HFRQ%i\r\n"%n)
-        frequency = pow(10,(n-3)/2)
+        frequency = math.pow(10,(n-3)/2)
         returnValue(frequency)
 
 
@@ -299,12 +300,12 @@ class SR560Server(DeviceServer):
         if frequency<0:
             raise Exception('Frequency cannot be negative')
         elif frequency<=1000000:
-            n = int(round(2*log10(frequency)+3))
+            n = int(round(2*math.log10(frequency)+3))
         else:
             n =15
         
         yield dev.write("LFRQ %i\r\n"%n)
-        frequency = pow(10,(n-3)/2)
+        frequency = math.pow(10,(n-3)/2)
         returnValue(frequency)
 
 
